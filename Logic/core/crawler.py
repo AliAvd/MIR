@@ -684,9 +684,12 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            contents = json.loads(soup.find('script', {'id': '__NEXT_DATA__', "type": "application/json"}).contents[0])
+            gross = str(contents['props']['pageProps']['mainColumnData']['worldwideGross']['total']['amount'])
+            return gross
         except:
             print("failed to get gross worldwide")
+            return ''
 
 
 def main():
