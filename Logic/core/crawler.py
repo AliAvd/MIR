@@ -204,23 +204,23 @@ class IMDbCrawler:
             The URL of the site
         """
         # TODO
-        movie['title'] = None
-        movie['first_page_summary'] = None
-        movie['release_year'] = None
-        movie['mpaa'] = None
-        movie['budget'] = None
-        movie['gross_worldwide'] = None
-        movie['directors'] = None
-        movie['writers'] = None
-        movie['stars'] = None
-        movie['related_links'] = None
-        movie['genres'] = None
-        movie['languages'] = None
-        movie['countries_of_origin'] = None
-        movie['rating'] = None
-        movie['summaries'] = None
-        movie['synopsis'] = None
-        movie['reviews'] = None
+        movie['title'] = self.get_title(res)
+        movie['first_page_summary'] = self.get_first_page_summary(res)
+        movie['release_year'] = self.get_release_year(res)
+        movie['mpaa'] = self.get_mpaa(URL)
+        movie['budget'] = self.get_budget(res)
+        movie['gross_worldwide'] = self.get_gross_worldwide(res)
+        movie['directors'] = self.get_director(res)
+        movie['writers'] = self.get_writers(res)
+        movie['stars'] = self.get_stars(res)
+        movie['related_links'] = self.get_related_links(res)
+        movie['genres'] = self.get_genres(res)
+        movie['languages'] = self.get_languages(res)
+        movie['countries_of_origin'] = self.get_countries_of_origin(res)
+        movie['rating'] = self.get_rating(res)
+        movie['summaries'] = self.get_summary(URL)
+        movie['synopsis'] = self.get_synopsis(URL)
+        movie['reviews'] = self.get_reviews_with_scores(URL)
 
     def get_summary_link(self,url):
         """
@@ -704,7 +704,6 @@ class IMDbCrawler:
 
 def main():
     imdb_crawler = IMDbCrawler(crawling_threshold=600)
-    # imdb_crawler.read_from_file_as_json()
     imdb_crawler.start_crawling()
     imdb_crawler.write_to_file_as_json()
 
