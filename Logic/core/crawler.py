@@ -610,10 +610,16 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            languages = []
+            contents = json.loads(soup.find('script', {'id': '__NEXT_DATA__', "type": "application/json"}).contents[0])
+            contents = contents['props']['pageProps']['mainColumnData']['spokenLanguages']['spokenLanguages']
+            for content in contents:
+                languages.append(content['text'].strip())
+            return languages
+
         except:
             print("failed to get languages")
-            return None
+            return []
 
     def get_countries_of_origin(soup):
         """
