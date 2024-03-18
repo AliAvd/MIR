@@ -438,7 +438,7 @@ class IMDbCrawler:
             print("failed to get summary")
             return []
 
-    def get_synopsis(soup):
+    def get_synopsis(self,url):
         """
         Get the synopsis of the movie from the soup
 
@@ -453,9 +453,19 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            summary_plot = self.get_summary_link(url)
+            res = self.crawl(summary_plot)
+            if res.status_code == 200:
+                soup = BeautifulSoup(res.content, 'html.parser')
+                content = json.loads(
+                    soup.find('script', {'id': '__NEXT_DATA__', "type": "application/json"}).contents[0])
+                content = content['props']['pageProps']['contentData']['categories'][1]['section']['items'][0]['htmlContent']
+                if content:
+                    return [content]
+                return []
         except:
             print("failed to get synopsis")
+            return []
 
     def get_reviews_with_scores(soup):
         """
