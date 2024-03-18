@@ -342,9 +342,16 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            contents = soup.find('script', {"type": "application/ld+json"}).contents[0]['actor']
+            actors = []
+            for i in range(len(contents)):
+                actors.append(contents[i]['name'].strip())
+            if len(actors) > 0:
+                return actors
+            return []
         except:
             print("failed to get stars")
+            return []
 
     def get_writers(soup):
         """
