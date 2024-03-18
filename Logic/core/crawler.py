@@ -11,7 +11,7 @@ class IMDbCrawler:
     put your own user agent in the headers
     """
     headers = {
-        'User-Agent': 'https://myip.ms/view/comp_browseragents/5306593/Mozilla_5_0_Macintosh_Intel_Mac_OS_X_12_2_1_AppleWebKit_537_36_KHTML_like_Gecko_Chrome_122_0_0_0_Safari_537_36.html'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
     }
     top_250_URL = 'https://www.imdb.com/chart/top/'
 
@@ -27,7 +27,7 @@ class IMDbCrawler:
         # TODO
         self.crawling_threshold = crawling_threshold
         self.not_crawled = deque()
-        self.crawled = set()
+        self.crawled = []
         self.added_ids = set()
         self.add_list_lock = Lock()
         self.add_queue_lock = Lock()
@@ -47,38 +47,68 @@ class IMDbCrawler:
             The id of the site
         """
         # TODO
-        return URL.split('/')[4]
+        return URL.split('/')[-2]
+
+    # def write_to_file_as_json(self):
+    #     """
+    #     Save the crawled files into json
+    #     """
+    #     # TODO
+    #     data = {
+    #         'crawled': list(self.crawled),
+    #         'uncrawled': list(self.not_crawled),
+    #         'added_ids': list(self.added_ids)
+    #     }
+    #
+    #     with open('imdb_data.json', 'w') as json_file:
+    #         json.dump(data, json_file, indent=4)
+    #
+    # def read_from_file_as_json(self):
+    #     """
+    #     Read the crawled files from json
+    #     """
+    #     # TODO
+    #     try:
+    #         with open('imdb_data.json', 'r') as json_file:
+    #             data = json.load(json_file)
+    #
+    #             # Update the attributes with the data read from the JSON file
+    #             self.crawled = set(data.get('crawled', []))
+    #             self.not_crawled = deque(data.get('uncrawled', []))
+    #             self.added_ids = set(data.get('added_ids', []))
+    #     except FileNotFoundError:
+    #         # If the file is not found, handle the exception gracefully
+    #         print("JSON file not found. No data read.")
 
     def write_to_file_as_json(self):
         """
         Save the crawled files into json
         """
-        # TODO
-        data = {
-            'crawled': list(self.crawled),
-            'uncrawled': list(self.not_crawled),
-            'added_ids': list(self.added_ids)
-        }
 
-        with open('imdb_data.json', 'w') as json_file:
-            json.dump(data, json_file, indent=4)
+        with open('../IMDB_crawled.json', 'w') as f:
+            json.dump(self.crawled, f)
+
+        with open('../IMDB_not_crawled.json', 'w') as f:
+            json.dump(list(self.not_crawled), f)
 
     def read_from_file_as_json(self):
         """
         Read the crawled files from json
         """
-        # TODO
-        try:
-            with open('imdb_data.json', 'r') as json_file:
-                data = json.load(json_file)
 
-                # Update the attributes with the data read from the JSON file
-                self.crawled = set(data.get('crawled', []))
-                self.not_crawled = deque(data.get('uncrawled', []))
-                self.added_ids = set(data.get('added_ids', []))
-        except FileNotFoundError:
-            # If the file is not found, handle the exception gracefully
-            print("JSON file not found. No data read.")
+        with open('../IMDB_crawled.json', 'r') as f:
+            Crawl = json.load(f)
+            self.crawled = Crawl
+
+        with open('../IMDB_not_crawled.json', 'r') as f:
+            notCrawl = json.load(f)
+            self.not_crawled = notCrawl
+
+        for entry in Crawl:
+            self.added_ids.add(entry['id'])
+
+        for entry in notCrawl:
+            self.added_ids.add(self.get_id_from_URL(entry))
 
 
     def crawl(self, URL):
@@ -107,13 +137,14 @@ class IMDbCrawler:
             response = self.crawl(self.top_250_URL)
             if response and response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
-                movie_links = soup.select('.titleColumn a')
-
-                for link in movie_links:
-                    movie_id = self.get_id_from_URL(link['href'])
-                    if movie_id not in self.added_ids:
-                        self.not_crawled.append(link['href'])
-                        self.added_ids.add(movie_id)
+                contents = soup.findAll('a', {'class': "ipc-lockup-overlay ipc-focusable"})
+                for content in contents:
+                    c = content['href'].split("/")
+                    url = 'https://www.imdb.com/' + c[1] + '/' + c[2]
+                    id = self.get_id_from_URL(url)
+                    if id not in self.added_ids and url not in self.crawled:
+                        self.not_crawled.append(url)
+                        self.added_ids.add(id)
         except Exception as e:
             # Handle exceptions gracefully
             print(f"An error occurred while extracting top 250 movies: {e}")
@@ -154,18 +185,14 @@ class IMDbCrawler:
         You are free to use it or not. If used, not to forget safe access to the shared resources.
         """
 
-        # help variables
-        WHILE_LOOP_CONSTRAINTS = None
-        NEW_URL = None
-        THERE_IS_NOTHING_TO_CRAWL = None
-
         self.extract_top_250()
         futures = []
         crawled_counter = 0
 
         with ThreadPoolExecutor(max_workers=20) as executor:
             while len(self.not_crawled) > 0 and crawled_counter < self.crawling_threshold:
-                URL = self.not_crawled.popleft()
+                with self.add_queue_lock:
+                    URL = self.not_crawled.popleft()
                 futures.append(executor.submit(self.crawl_page_info, URL))
                 crawled_counter += 1
                 if len(self.not_crawled) == 0:
@@ -188,7 +215,19 @@ class IMDbCrawler:
         response = self.crawl(URL)
         if response and response.status_code == 200:
             soup = BeautifulSoup(response.content, 'html.parser')
+            movie = self.get_imdb_instance()
+            self.extract_movie_info(soup, movie, URL)
+            with self.add_queue_lock:
+                self.crawled.append(movie)
+                print(len(self.crawled))
 
+            related_links = movie['related_links']
+            for link in related_links:
+                if link not in self.not_crawled:
+                    with self.add_queue_lock:
+                        self.not_crawled.append(link)
+                    with self.add_list_lock:
+                        self.added_ids.add(self.get_id_from_URL(link))
 
     def extract_movie_info(self, res, movie, URL):
         """
@@ -261,7 +300,7 @@ class IMDbCrawler:
             print("failed to get review link")
             return ''
 
-    def get_title(soup):
+    def get_title(self, soup):
         """
         Get the title of the movie from the soup
 
@@ -282,7 +321,7 @@ class IMDbCrawler:
             print("failed to get title")
             return ''
 
-    def get_first_page_summary(soup):
+    def get_first_page_summary(self, soup):
         """
         Get the first page summary of the movie from the soup
 
@@ -303,7 +342,7 @@ class IMDbCrawler:
             print("failed to get first page summary")
             return []
 
-    def get_director(soup):
+    def get_director(self, soup):
         """
         Get the directors of the movie from the soup
 
@@ -329,7 +368,7 @@ class IMDbCrawler:
             print("failed to get director")
             return []
 
-    def get_stars(soup):
+    def get_stars(self ,soup):
         """
         Get the stars of the movie from the soup
 
@@ -355,7 +394,7 @@ class IMDbCrawler:
             print("failed to get stars")
             return []
 
-    def get_writers(soup):
+    def get_writers(self, soup):
         """
         Get the writers of the movie from the soup
 
@@ -382,7 +421,7 @@ class IMDbCrawler:
             print("failed to get writers")
             return []
 
-    def get_related_links(soup):
+    def get_related_links(self, soup):
         """
         Get the related links of the movie from the More like this section of the page from the soup
 
@@ -508,7 +547,7 @@ class IMDbCrawler:
             print("failed to get reviews")
             return []
 
-    def get_genres(soup):
+    def get_genres(self, soup):
         """
         Get the genres of the movie from the soup
 
@@ -532,7 +571,7 @@ class IMDbCrawler:
             print("Failed to get generes")
             return []
 
-    def get_rating(soup):
+    def get_rating(self, soup):
         """
         Get the rating of the movie from the soup
 
@@ -583,7 +622,7 @@ class IMDbCrawler:
             print("failed to get mpaa")
             return ''
 
-    def get_release_year(soup):
+    def get_release_year(self, soup):
         """
         Get the release year of the movie from the soup
 
@@ -605,7 +644,7 @@ class IMDbCrawler:
             print("failed to get release year")
             return ''
 
-    def get_languages(soup):
+    def get_languages(self, soup):
         """
         Get the languages of the movie from the soup
 
@@ -631,7 +670,7 @@ class IMDbCrawler:
             print("failed to get languages")
             return []
 
-    def get_countries_of_origin(soup):
+    def get_countries_of_origin(self, soup):
         """
         Get the countries of origin of the movie from the soup
 
@@ -656,7 +695,7 @@ class IMDbCrawler:
             print("failed to get countries of origin")
             return []
 
-    def get_budget(soup):
+    def get_budget(self, soup):
         """
         Get the budget of the movie from box office section of the soup
 
@@ -679,7 +718,7 @@ class IMDbCrawler:
             print("failed to get budget")
             return ''
 
-    def get_gross_worldwide(soup):
+    def get_gross_worldwide(self, soup):
         """
         Get the gross worldwide of the movie from box office section of the soup
 
@@ -703,7 +742,7 @@ class IMDbCrawler:
 
 
 def main():
-    imdb_crawler = IMDbCrawler(crawling_threshold=600)
+    imdb_crawler = IMDbCrawler(crawling_threshold=10)
     imdb_crawler.start_crawling()
     imdb_crawler.write_to_file_as_json()
 
