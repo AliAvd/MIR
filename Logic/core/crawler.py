@@ -407,7 +407,7 @@ class IMDbCrawler:
             print("failed to get related links")
             return []
 
-    def get_summary(soup):
+    def get_summary(self, url):
         """
         Get the summary of the movie from the soup
 
@@ -422,9 +422,17 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            summaries = []
+            summary_plot = self.get_summary_link(url)
+            res = self.crawl(summary_plot)
+            if res.status_code == 200:
+                soup = BeautifulSoup(res.content, 'html.parser')
+                finded = soup.findAll('div', {'class': "ipc-html-content-inner-div"})
+                for find in finded:
+                    summaries.append(finded.get_text())
         except:
             print("failed to get summary")
+            return []
 
     def get_synopsis(soup):
         """
