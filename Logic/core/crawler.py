@@ -661,9 +661,13 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            budget = None
+            contents = json.loads(soup.find('script', {'id': '__NEXT_DATA__', "type": "application/json"}).contents[0])
+            budget = str(contents['props']['pageProps']['mainColumnData']['productionBudget']['budget']['amount'])
+            return budget
         except:
             print("failed to get budget")
+            return ''
 
     def get_gross_worldwide(soup):
         """
