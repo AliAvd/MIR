@@ -297,7 +297,7 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            summary = soup.find('script', {"type": "application/ld+json"}).contents[0]['description']
+            summary = json.loads(soup.find('script', {"type": "application/ld+json"}).contents[0])['description']
             return summary.strip()
         except:
             print("failed to get first page summary")
@@ -318,7 +318,7 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            contents = soup.find('script', {"type": "application/ld+json"}).contents[0]['director']
+            contents = json.loads(soup.find('script', {"type": "application/ld+json"}).contents[0])['director']
             directors = []
             for i in range(len(contents)):
                 directors.append(contents[i]['name'].strip())
@@ -344,7 +344,7 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            contents = soup.find('script', {"type": "application/ld+json"}).contents[0]['actor']
+            contents = json.loads(soup.find('script', {"type": "application/ld+json"}).contents[0])['actor']
             actors = []
             for i in range(len(contents)):
                 actors.append(contents[i]['name'].strip())
@@ -370,7 +370,7 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            contents = soup.find('script', {"type": "application/ld+json"}).contents[0]['creator']
+            contents = json.loads(soup.find('script', {"type": "application/ld+json"}).contents[0])['creator']
             writers = []
             for i in range(len(contents)):
                 if contents[i]['@type'] == 'Person':
@@ -523,9 +523,14 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            genres = []
+            contents = json.loads(soup.find('script', {"type": "application/ld+json"}).contents[0])['genre']
+            for i in range(len(contents)):
+                genres.append(contents[i].strip())
+            return genres
         except:
             print("Failed to get generes")
+            return []
 
     def get_rating(soup):
         """
