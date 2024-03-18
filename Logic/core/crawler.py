@@ -467,7 +467,7 @@ class IMDbCrawler:
             print("failed to get synopsis")
             return []
 
-    def get_reviews_with_scores(soup):
+    def get_reviews_with_scores(self, url):
         """
         Get the reviews of the movie from the soup
         reviews structure: [[review,score]]
@@ -483,9 +483,30 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            review_page = self.get_review_link(url)
+            res = self.crawl(review_page)
+            if res.status_code == 200:
+                soup = BeautifulSoup(res.content, 'html.parser')
+                contents = soup.select('div[class^="lister-item mode-detail imdb-user-review collapsable"]')
+                reviews = []
+                for div in contents:
+                    inner_div = div.find('div', class_='review-container')
+                    text_div = inner_div.find('div', class_='lister-item-content')
+                    review_div = text_div.find('div', class_='text show-more__control')
+                    review = review_div.text
+                    rate_div = text_div.find('div', class_='ipl-ratings-bar')
+                    if rate_div:
+                        rate_span = rate_div.find('span', class_='rating-other-user-rating')
+                        rate = rate_span.text
+                        reviews.append((review, rate))
+                    else:
+                        reviews.append((review, 'No Rating'))
+                return reviews
+
+
         except:
             print("failed to get reviews")
+            return []
 
     def get_genres(soup):
         """
