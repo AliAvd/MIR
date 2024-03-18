@@ -588,9 +588,12 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            contents = json.loads(soup.find('script', {"type": "application/ld+json"}).contents[0])
+            release = contents['datePublished']
+            return release
         except:
             print("failed to get release year")
+            return ''
 
     def get_languages(soup):
         """
