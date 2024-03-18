@@ -368,9 +368,17 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            contents = soup.find('script', {"type": "application/ld+json"}).contents[0]['creator']
+            writers = []
+            for i in range(len(contents)):
+                if contents[i]['@type'] == 'Person':
+                    writers.append(contents[i]['name'].strip())
+            if len(writers) > 0:
+                return writers
+            return []
         except:
             print("failed to get writers")
+            return []
 
     def get_related_links(soup):
         """
