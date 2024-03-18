@@ -427,9 +427,13 @@ class IMDbCrawler:
             res = self.crawl(summary_plot)
             if res.status_code == 200:
                 soup = BeautifulSoup(res.content, 'html.parser')
-                finded = soup.findAll('div', {'class': "ipc-html-content-inner-div"})
-                for find in finded:
-                    summaries.append(finded.get_text())
+                contents = json.loads(soup.find('script', {'id': '__NEXT_DATA__', "type": "application/json"}).contents[0])
+                contents = contents['props']['pageProps']['contentData']['categories'][0]['section']['items']
+                for content in contents:
+                    summaries.append(content['htmlContent'])
+                if len(summaries) > 0:
+                    return summaries
+                return []
         except:
             print("failed to get summary")
             return []
