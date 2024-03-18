@@ -547,9 +547,12 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            contents = json.loads(soup.find('script', {"type": "application/ld+json"}).contents[0])
+            rating = contents['aggregateRating']['ratingValue']
+            return str(rating)
         except:
             print("failed to get rating")
+            return ''
 
     def get_mpaa(soup):
         """
