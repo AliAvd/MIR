@@ -397,9 +397,15 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            links = soup.findAll('a', {'class': "ipc-poster-card__title ipc-poster-card__title--clamp-2 ipc-poster-card__title--clickable"})
+            related_links = []
+            for link in links:
+                related_links.append("https://www.imdb.com/" + link['href'])
+            return related_links
+
         except:
             print("failed to get related links")
+            return []
 
     def get_summary(soup):
         """
