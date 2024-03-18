@@ -297,9 +297,11 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            summary = soup.find('script', {"type": "application/ld+json"}).contents[0]['description']
+            return summary.strip()
         except:
             print("failed to get first page summary")
+            return []
 
     def get_director(soup):
         """
