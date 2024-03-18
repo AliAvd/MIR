@@ -636,9 +636,15 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            countries = []
+            contents = json.loads(soup.find('script', {'id': '__NEXT_DATA__', "type": "application/json"}).contents[0])
+            contents = contents['props']['pageProps']['mainColumnData']['countriesOfOrigin']['countries']
+            for content in contents:
+                countries.append(content['text'].strip())
+            return countries
         except:
             print("failed to get countries of origin")
+            return []
 
     def get_budget(soup):
         """
