@@ -554,7 +554,7 @@ class IMDbCrawler:
             print("failed to get rating")
             return ''
 
-    def get_mpaa(soup):
+    def get_mpaa(self, url):
         """
         Get the MPAA of the movie from the soup
 
@@ -569,9 +569,19 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            pass
+            movie_id = self.get_id_from_URL(url)
+            new_url = f'https://www.imdb.com/title/{movie_id}/parentalguide'
+            res = self.crawl(new_url)
+            if res.status_code == 200:
+                soup = BeautifulSoup(res.content, 'html.parser')
+                content = soup.find('tr', {'id': 'mpaa-rating'})
+                mpaa = content.findAll('td')[1].text
+                if mpaa:
+                    return mpaa
+                return ''
         except:
             print("failed to get mpaa")
+            return ''
 
     def get_release_year(soup):
         """
