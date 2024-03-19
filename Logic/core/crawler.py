@@ -711,7 +711,7 @@ class IMDbCrawler:
 
 
 def main():
-    imdb_crawler = IMDbCrawler(crawling_threshold=10)
+    imdb_crawler = IMDbCrawler(crawling_threshold=1200)
     imdb_crawler.start_crawling()
     imdb_crawler.write_to_file_as_json()
 
