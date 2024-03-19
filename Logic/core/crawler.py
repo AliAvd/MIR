@@ -47,7 +47,7 @@ class IMDbCrawler:
             The id of the site
         """
         # TODO
-        return URL.split('/')[-2]
+        return URL.split('/')[4]
 
     # def write_to_file_as_json(self):
     #     """
@@ -85,30 +85,30 @@ class IMDbCrawler:
         Save the crawled files into json
         """
 
-        with open('../IMDB_crawled.json', 'w') as f:
-            json.dump(self.crawled, f)
+        with open('../IMDB_crawled.json', 'w') as file:
+            json.dump(self.crawled, file)
 
-        with open('../IMDB_not_crawled.json', 'w') as f:
-            json.dump(list(self.not_crawled), f)
+        with (open('../IMDB_not_crawled.json', 'w') as file):
+            json.dump(list(self.not_crawled), file)
 
     def read_from_file_as_json(self):
         """
         Read the crawled files from json
         """
 
-        with open('../IMDB_crawled.json', 'r') as f:
-            Crawl = json.load(f)
-            self.crawled = Crawl
+        with open('../IMDB_crawled.json', 'r') as file:
+            crawled_data = json.load(file)
+            self.crawled = crawled_data
 
-        with open('../IMDB_not_crawled.json', 'r') as f:
-            notCrawl = json.load(f)
-            self.not_crawled = notCrawl
+        with open('../IMDB_not_crawled.json', 'r') as file:
+            not_crawled_data = json.load(file)
+            self.not_crawled = not_crawled_data
 
-        for entry in Crawl:
-            self.added_ids.add(entry['id'])
+        for data in crawled_data:
+            self.added_ids.add(data['id'])
 
-        for entry in notCrawl:
-            self.added_ids.add(self.get_id_from_URL(entry))
+        for data in not_crawled_data:
+            self.added_ids.add(self.get_id_from_URL(data))
 
 
     def crawl(self, URL):
@@ -229,7 +229,7 @@ class IMDbCrawler:
                     with self.add_list_lock:
                         self.added_ids.add(self.get_id_from_URL(link))
 
-    def extract_movie_info(self, res, movie, URL):
+    def extract_movie_info(self, soup, movie, URL):
         """
         Extract the information of the movie from the response and save it in the movie instance.
 
@@ -243,20 +243,21 @@ class IMDbCrawler:
             The URL of the site
         """
         # TODO
-        movie['title'] = self.get_title(res)
-        movie['first_page_summary'] = self.get_first_page_summary(res)
-        movie['release_year'] = self.get_release_year(res)
+        movie['id'] = self.get_id_from_URL(URL)
+        movie['title'] = self.get_title(soup)
+        movie['first_page_summary'] = self.get_first_page_summary(soup)
+        movie['release_year'] = self.get_release_year(soup)
         movie['mpaa'] = self.get_mpaa(URL)
-        movie['budget'] = self.get_budget(res)
-        movie['gross_worldwide'] = self.get_gross_worldwide(res)
-        movie['directors'] = self.get_director(res)
-        movie['writers'] = self.get_writers(res)
-        movie['stars'] = self.get_stars(res)
-        movie['related_links'] = self.get_related_links(res)
-        movie['genres'] = self.get_genres(res)
-        movie['languages'] = self.get_languages(res)
-        movie['countries_of_origin'] = self.get_countries_of_origin(res)
-        movie['rating'] = self.get_rating(res)
+        movie['budget'] = self.get_budget(soup)
+        movie['gross_worldwide'] = self.get_gross_worldwide(soup)
+        movie['directors'] = self.get_director(soup)
+        movie['writers'] = self.get_writers(soup)
+        movie['stars'] = self.get_stars(soup)
+        movie['related_links'] = self.get_related_links(soup)
+        movie['genres'] = self.get_genres(soup)
+        movie['languages'] = self.get_languages(soup)
+        movie['countries_of_origin'] = self.get_countries_of_origin(soup)
+        movie['rating'] = self.get_rating(soup)
         movie['summaries'] = self.get_summary(URL)
         movie['synopsis'] = self.get_synopsis(URL)
         movie['reviews'] = self.get_reviews_with_scores(URL)
