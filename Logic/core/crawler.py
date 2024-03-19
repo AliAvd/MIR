@@ -287,7 +287,11 @@ class IMDbCrawler:
         """
         try:
             # TODO
-            return soup.find('h1').text.strip()
+            content = soup.find('h1')
+            if content:
+                print(content.text.strip())
+                return content.text.strip()
+            return ''
         except:
             print("failed to get title")
             return ''
