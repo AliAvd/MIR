@@ -49,36 +49,6 @@ class IMDbCrawler:
         # TODO
         return URL.split('/')[4]
 
-    # def write_to_file_as_json(self):
-    #     """
-    #     Save the crawled files into json
-    #     """
-    #     # TODO
-    #     data = {
-    #         'crawled': list(self.crawled),
-    #         'uncrawled': list(self.not_crawled),
-    #         'added_ids': list(self.added_ids)
-    #     }
-    #
-    #     with open('imdb_data.json', 'w') as json_file:
-    #         json.dump(data, json_file, indent=4)
-    #
-    # def read_from_file_as_json(self):
-    #     """
-    #     Read the crawled files from json
-    #     """
-    #     # TODO
-    #     try:
-    #         with open('imdb_data.json', 'r') as json_file:
-    #             data = json.load(json_file)
-    #
-    #             # Update the attributes with the data read from the JSON file
-    #             self.crawled = set(data.get('crawled', []))
-    #             self.not_crawled = deque(data.get('uncrawled', []))
-    #             self.added_ids = set(data.get('added_ids', []))
-    #     except FileNotFoundError:
-    #         # If the file is not found, handle the exception gracefully
-    #         print("JSON file not found. No data read.")
 
     def write_to_file_as_json(self):
         """
@@ -341,7 +311,7 @@ class IMDbCrawler:
             return summary.strip()
         except:
             print("failed to get first page summary")
-            return []
+            return ''
 
     def get_director(self, soup):
         """
@@ -362,9 +332,7 @@ class IMDbCrawler:
             directors = []
             for i in range(len(contents)):
                 directors.append(contents[i]['name'].strip())
-            if len(directors) > 0:
-                return directors
-            return []
+            return directors
         except:
             print("failed to get director")
             return []
@@ -388,9 +356,7 @@ class IMDbCrawler:
             actors = []
             for i in range(len(contents)):
                 actors.append(contents[i]['name'].strip())
-            if len(actors) > 0:
-                return actors
-            return []
+            return actors
         except:
             print("failed to get stars")
             return []
@@ -415,9 +381,7 @@ class IMDbCrawler:
             for i in range(len(contents)):
                 if contents[i]['@type'] == 'Person':
                     writers.append(contents[i]['name'].strip())
-            if len(writers) > 0:
-                return writers
-            return []
+            return writers
         except:
             print("failed to get writers")
             return []
@@ -471,9 +435,7 @@ class IMDbCrawler:
                 contents = contents['props']['pageProps']['contentData']['categories'][0]['section']['items']
                 for content in contents:
                     summaries.append(content['htmlContent'])
-                if len(summaries) > 0:
-                    return summaries
-                return []
+                return summaries
         except:
             print("failed to get summary")
             return []
@@ -588,8 +550,10 @@ class IMDbCrawler:
         try:
             # TODO
             contents = json.loads(soup.find('script', {"type": "application/ld+json"}).contents[0])
-            rating = contents['aggregateRating']['ratingValue']
-            return str(rating)
+            rating = str(contents['aggregateRating']['ratingValue'])
+            if rating:
+                return rating
+            return ''
         except:
             print("failed to get rating")
             return ''
@@ -714,7 +678,9 @@ class IMDbCrawler:
             budget = None
             contents = json.loads(soup.find('script', {'id': '__NEXT_DATA__', "type": "application/json"}).contents[0])
             budget = str(contents['props']['pageProps']['mainColumnData']['productionBudget']['budget']['amount'])
-            return budget
+            if budget:
+                return budget
+            return ''
         except:
             print("failed to get budget")
             return ''
@@ -736,7 +702,9 @@ class IMDbCrawler:
             # TODO
             contents = json.loads(soup.find('script', {'id': '__NEXT_DATA__', "type": "application/json"}).contents[0])
             gross = str(contents['props']['pageProps']['mainColumnData']['worldwideGross']['total']['amount'])
-            return gross
+            if gross:
+                return gross
+            return ''
         except:
             print("failed to get gross worldwide")
             return ''
