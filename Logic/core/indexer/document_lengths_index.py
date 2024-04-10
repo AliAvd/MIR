@@ -40,7 +40,15 @@ class DocumentLengthsIndex:
             the document's length in that field (where).
         """
 
-        # TODO:
+        document_lengths = {}
+
+        for document in self.documents_index.values():
+            id = document['id']
+            if where in document:
+                document_lengths[id] = len(document[where])
+            else:
+                document_lengths[id] = 0
+        return document_lengths
     
     def store_document_lengths_index(self, path , index_name):
         """
