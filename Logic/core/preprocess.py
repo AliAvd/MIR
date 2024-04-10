@@ -76,7 +76,6 @@ class Preprocessor:
         for pattern in patterns:
             text = re.sub(pattern, '', text)
         return text
-        return
 
     def remove_punctuations(self, text: str):
         """

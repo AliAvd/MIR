@@ -3,6 +3,7 @@ import os
 import json
 import copy
 from indexes_enum import Indexes
+from ..preprocess import Preprocessor
 
 
 class Index:
@@ -32,7 +33,9 @@ class Index:
         """
 
         current_index = {}
-        #         TODO
+        for doc in self.preprocessed_documents:
+            id = doc['id']
+            current_index[id] = doc
 
         return current_index
 
@@ -47,8 +50,23 @@ class Index:
             So the index type is: {term: {document_id: tf}}
         """
 
-        #         TODO
-        pass
+        star_indexes = {}
+        for doc in self.preprocessed_documents:
+            id = doc['id']
+            stars = doc['stars']
+            parts = []
+            for star in stars:
+                for part in star.split():
+                    part = part.lower()
+                    parts.append(part)
+            for star in stars:
+                for part in star.split():
+                    part = part.lower()
+                    if part not in star_indexes:
+                        star_indexes[part] = {}
+                    star_indexes[part][id] = parts.count(part)
+
+        return star_indexes
 
     def index_genres(self):
         """
@@ -61,8 +79,18 @@ class Index:
             So the index type is: {term: {document_id: tf}}
         """
 
-        #         TODO
-        pass
+        genre_indexes = {}
+        for doc in self.preprocessed_documents:
+            id = doc['id']
+            genres = doc['genres']
+            for i in range(len(genres)):
+                genres[i] = genres[i].lower()
+            for genre in genres:
+                genre = genre.lower()
+                if genre not in genre_indexes:
+                    genre_indexes[genre] = {}
+                genre_indexes[genre][id] = genres.count(genre)
+        return genre_indexes
 
     def index_summaries(self):
         """
@@ -76,8 +104,21 @@ class Index:
         """
 
         current_index = {}
-        #         TODO
-
+        for doc in self.preprocessed_documents:
+            id = doc['id']
+            summaries = doc.get('summaries', [])
+            for summary in summaries:
+                summary = Preprocessor.remove_links(summary)
+                summary = Preprocessor.remove_punctuations(summary)
+                summary = Preprocessor.tokenize(summary)
+                summary = Preprocessor.remove_stopwords(summary)
+                dummy = {}
+                for word in summary.split():
+                    dummy[word] = dummy.get(word, 0) + 1
+                for word, freq in dummy.items():
+                    if word not in current_index:
+                        current_index[word] = {}
+                    current_index[word][id] = freq
         return current_index
 
     def get_posting_list(self, word: str, index_type: str):
@@ -98,8 +139,8 @@ class Index:
         """
 
         try:
-            #         TODO
-            pass
+            posting_list = list(self.index[index_type][word].keys())
+            return posting_list
         except:
             return []
 
@@ -113,8 +154,43 @@ class Index:
             Document to add to all the indexes
         """
 
-        #         TODO
-        pass
+        id = document['id']
+        self.index[Indexes.DOCUMENTS.value][id] = document
+
+
+        stars = document.get('stars', [])
+        stars_parts = []
+        for star in stars:
+            for part in star.split():
+                part = part.lower()
+                stars_parts.append(part)
+        for star in stars_parts:
+            if star not in self.index[Indexes.STARS.value]:
+                self.index[Indexes.STARS.value][star] = {}
+            self.index[Indexes.STARS.value][star][id] = stars_parts.count(star)
+
+
+        genres = document.get('genres', [])
+        genres_parts = []
+        for i in range(len(genres)):
+            genres[i] = genres[i].lower()
+        for genre in genres:
+            if genre not in self.index[Indexes.GENRES.value]:
+                self.index[Indexes.GENRES.value][genre] = {}
+            self.index[Indexes.GENRES.value][genre][id] = genres.count(genre)
+
+        summaries = document.get('summaries', [])
+        for summary in summaries:
+            summary = Preprocessor.remove_links(summary)
+            summary = Preprocessor.remove_punctuations(summary)
+            summary = Preprocessor.tokenize(summary)
+            summary = Preprocessor.remove_stopwords(summary)
+            words = summary.split()
+            for word in words:
+                if word not in self.index[Indexes.SUMMARIES.value]:
+                    self.index[Indexes.SUMMARIES.value][word] = {}
+                if id not in self.index[Indexes.SUMMARIES.value][word]:
+                    self.index[Indexes.SUMMARIES.value][word][id] = words.count(word)
 
     def remove_document_from_index(self, document_id: str):
         """
@@ -126,8 +202,38 @@ class Index:
             ID of the document to remove from all the indexes
         """
 
-        #         TODO
-        pass
+        if document_id in self.index['documents']:
+            del self.index['documents'][document_id]
+
+        to_delete = []
+        for item in self.index['stars']:
+            for id in self.index['stars'][item]:
+                if document_id == id:
+                    to_delete.append(item)
+                    break
+
+        for key in to_delete:
+            del self.index['stars'][key][document_id]
+
+        to_delete = []
+        for item in self.index['genres']:
+            for id in self.index['genres'][item]:
+                if document_id == id:
+                    to_delete.append(item)
+                    break
+
+        for key in to_delete:
+            del self.index['genres'][key][document_id]
+
+        to_delete = []
+        for item in self.index['summaries']:
+            for id in self.index['summaries'][item]:
+                if document_id == id:
+                    to_delete.append(item)
+                    break
+
+        for key in to_delete:
+            del self.index['summaries'][key][document_id]
 
     def check_add_remove_is_correct(self):
         """
@@ -201,8 +307,11 @@ class Index:
         if index_name not in self.index:
             raise ValueError('Invalid index name')
 
-        # TODO
-        pass
+        else:
+            index = self.index[index_name]
+
+            with open(os.path.join(path, index_name + '_' + 'index.json'), 'w') as f:
+                json.dump(index, f)
 
     def load_index(self, path: str):
         """
@@ -214,8 +323,9 @@ class Index:
             Path to load the file
         """
 
-        #         TODO
-        pass
+        path += '_index.json'
+        with open(path, 'r') as file:
+            return json.load(file)
 
     def check_if_index_loaded_correctly(self, index_type: str, loaded_index: dict):
         """

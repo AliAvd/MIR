@@ -61,7 +61,16 @@ class Tiered_index:
         first_tier = {}
         second_tier = {}
         third_tier = {}
-        #TODO
+
+        for key, value in current_index.items():
+            for doc_id, freq in value.items():
+                if freq >= first_tier_threshold:
+                    first_tier.setdefault(key, {})[id] = freq
+                elif freq >= second_tier_threshold:
+                    second_tier.setdefault(key, {})[id] = freq
+                else:
+                    third_tier.setdefault(key, {})[id] = freq
+
         return {
             "first_tier": first_tier,
             "second_tier": second_tier,
