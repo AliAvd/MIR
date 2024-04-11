@@ -65,8 +65,12 @@ class Scorer:
         """
         idf = self.idf.get(term, None)
         if idf is None:
-            # TODO
-            pass
+            fq = len(self.index.get(term, {}))
+            if fq == 0:
+                idf = 0
+            else:
+                idf = np.log(self.N / fq)
+            self.idf[term] = idf
         return idf
     
     def get_query_tfs(self, query):
@@ -83,8 +87,13 @@ class Scorer:
         dict
             A dictionary of the term frequencies of the terms in the query.
         """
-        
-        #TODO
+        query_term_freq = {}
+        for term in query:
+            if term not in list(query_term_freq.keys()):
+                query_term_freq[term] = 1
+            else:
+                query_term_freq[term] += 1
+        return query_term_freq
 
 
     def compute_scores_with_vector_space_model(self, query, method):
@@ -104,8 +113,18 @@ class Scorer:
             A dictionary of the document IDs and their scores.
         """
 
-        # TODO
-        pass
+        scores = {}
+        doc_ids = self.get_list_of_documents(query)
+        document_method = method.split(".")[0]
+        query_method = method.split(".")[1]
+        query_tfs = self.get_query_tfs(query)
+
+        for doc_id in doc_ids:
+            score = self.get_vector_space_model_score(query, query_tfs, doc_id, document_method,
+                                                      query_method)
+            scores[doc_id] = score
+
+        return scores
 
     def get_vector_space_model_score(self, query, query_tfs, document_id, document_method, query_method):
         """
@@ -130,8 +149,41 @@ class Scorer:
             The Vector Space Model score of the document for the query.
         """
 
-        #TODO
-        pass
+        term_freq = []
+        idf = []
+        query_term_freq = []
+        for term in query:
+            if term in list(self.index.keys()) and document_id in self.index[term]:
+                term_freq.append(self.index[term][document_id])
+            else:
+                term_freq.append(0)
+            idf.append(self.get_idf(term))
+            query_term_freq.append(query_tfs[term])
+
+        for i in range(len(term_freq)):
+            term_freq[i] += 0.1
+
+        if document_method[0] == 'n':
+            doc_score = term_freq
+        else:
+            doc_score = np.log(term_freq)
+        if document_method[1] == 't':
+            doc_score = np.multiply(doc_score, idf)
+        if document_method[2] == 'c':
+            doc_score /= np.linalg.norm(doc_score)
+
+        for i in range(len(query_term_freq)):
+            query_term_freq[i] += 0.1
+        if query_method[0] == 'n':
+            query_score = query_term_freq
+        else:
+            query_score = np.log(query_term_freq) + 1
+        if query_method[1] == 't':
+            query_score = np.multiply(query_term_freq, idf)
+        if query_method[2] == 'c':
+            query_score /= np.linalg.norm(query_score)
+
+        return np.dot(doc_score, query_score)
 
     def compute_socres_with_okapi_bm25(self, query, average_document_field_length, document_lengths):
         """
@@ -153,8 +205,11 @@ class Scorer:
             A dictionary of the document IDs and their scores.
         """
 
-        # TODO
-        pass
+        scores = {}
+        for doc_id in self.get_list_of_documents(query):
+            score = self.get_okapi_bm25_score(query, doc_id, average_document_field_length, document_lengths)
+            scores[doc_id] = score
+        return scores
 
     def get_okapi_bm25_score(self, query, document_id, average_document_field_length, document_lengths):
         """
@@ -177,6 +232,14 @@ class Scorer:
         float
             The Okapi BM25 score of the document for the query.
         """
-
-        # TODO
-        pass
+        # https://github.com/yutayamazaki/okapi-bm25/blob/master/okapi_bm25/bm25.py
+        k = 1.2
+        b = 0.75
+        score = 0.0
+        for term in query:
+            if term in list(self.index.keys()) and document_id in self.index[term]:
+                freq = self.index[term][document_id]
+                denumerator = freq + k * (1 - b + b * document_lengths[document_id] / average_document_field_length)
+                numerator = self.get_idf(term) * freq * (k + 1)
+                score += numerator / denumerator
+        return score
