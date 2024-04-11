@@ -1,3 +1,4 @@
+from nltk import word_tokenize
 class SpellCorrection:
     def __init__(self, all_documents):
         """
@@ -28,7 +29,11 @@ class SpellCorrection:
         """
         shingles = set()
         
-        # TODO: Create shingle here
+        if len(word) < k:
+            shingles.add(word)
+        else:
+            for i in range(len(word) - k + 1):
+                shingles.add(word[i : i + k])
 
         return shingles
     
@@ -49,9 +54,11 @@ class SpellCorrection:
             Jaccard score.
         """
 
-        # TODO: Calculate jaccard score here.
+        if len(first_set.union(second_set)) == 0:
+            return 0
+        else:
+            return len(first_set.intersection(second_set)) / len(first_set.union(second_set))
 
-        return
 
     def shingling_and_counting(self, all_documents):
         """
@@ -72,7 +79,12 @@ class SpellCorrection:
         all_shingled_words = dict()
         word_counter = dict()
 
-        # TODO: Create shingled words dictionary and word counter dictionary here.
+        for doc in all_documents:
+            for word in doc.split():
+                if word not in all_shingled_words:
+                    word_counter[word] = 0
+                    all_shingled_words[word] = self.shingle_word(word)
+                word_counter[word] += 1
                 
         return all_shingled_words, word_counter
     
@@ -92,8 +104,16 @@ class SpellCorrection:
         """
         top5_candidates = list()
 
-        # TODO: Find 5 nearest candidates here.
+        shingled_word = self.shingle_word(word)
+        similarity_scores = {}
 
+        for word, shingle in self.all_shingled_words.items():
+            score = self.jaccard_score(shingled_word, shingle)
+            similarity_scores[word] = score
+
+        sorted_words = sorted(similarity_scores.items(), key=lambda x: x[1], reverse=True)
+        for i in range(5):
+            top5_candidates.append(sorted_words[i][0])
         return top5_candidates
     
     def spell_check(self, query):
@@ -111,7 +131,25 @@ class SpellCorrection:
             Correct form of the query.
         """
         final_result = ""
-        
-        # TODO: Do spell correction here.
+        query = query.lower()
+        for word in word_tokenize(query):
+            if word in self.word_counter:
+                final_result += word
+            else:
+                nearest = self.find_nearest_words(word)
+                if len(nearest) > 0:
+                    shingles = self.shingle_word(word)
+                    tmp = 0
+                    part = ""
+                    for near in nearest:
+                        score = self.jaccard_score(shingles, self.shingle_word(near))
+                        if score > tmp:
+                            tmp = score
+                            part = near
+                    final_result += " "
+                    final_result += part
+                else:
+                    final_result += " "
+                    final_result += word
 
         return final_result
