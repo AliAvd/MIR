@@ -24,7 +24,6 @@ class Evaluation:
         """
         precision = 0.0
 
-        # TODO: Calculate precision here
         
         return precision
     

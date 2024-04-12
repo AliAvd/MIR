@@ -112,9 +112,8 @@ class SpellCorrection:
             similarity_scores[word] = score
 
         sorted_words = sorted(similarity_scores.items(), key=lambda x: x[1], reverse=True)
-        for i in range(5):
-            top5_candidates.append(sorted_words[i][0])
-        return top5_candidates
+        return [candidate[0] for candidate in sorted_words[:5]]
+
     
     def spell_check(self, query):
         """
@@ -130,26 +129,31 @@ class SpellCorrection:
         str
             Correct form of the query.
         """
-        final_result = ""
+        final_result = []
         query = query.lower()
         for word in word_tokenize(query):
             if word in self.word_counter:
-                final_result += word
+                final_result.append(word)
             else:
                 nearest = self.find_nearest_words(word)
                 if len(nearest) > 0:
                     shingles = self.shingle_word(word)
-                    tmp = 0
-                    part = ""
-                    for near in nearest:
-                        score = self.jaccard_score(shingles, self.shingle_word(near))
-                        if score > tmp:
-                            tmp = score
-                            part = near
-                    final_result += " "
-                    final_result += part
-                else:
-                    final_result += " "
-                    final_result += word
+                    # tmp = 0
+                    # part = ""
+                    # for near in nearest:
+                    #     score = self.jaccard_score(shingles, self.shingle_word(near))
+                    #     if score > tmp:
+                    #         tmp = score
+                    #         part = near
+                    # final_result += " "
+                    # final_result += part
+                    final_result.append(max(nearest,
+                                               key=lambda word: self.word_counter[word] * self.jaccard_score(
+                                                   shingles, self.shingle_word(word))))
 
-        return final_result
+                else:
+                    # final_result += " "
+                    # final_result += word
+                    final_result.append(word)
+
+        return " ".join(final_result)

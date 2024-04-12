@@ -1,4 +1,4 @@
-from indexes_enum import Indexes,Index_types
+from Logic.core.indexer.indexes_enum import Indexes, Index_types
 import json
 class Index_reader:
     def __init__(self,path: str, index_name: Indexes, index_type: Index_types = None):
@@ -28,7 +28,9 @@ class Index_reader:
         dict
             The index.
         """
-        absolute_path = self.path + self.index_name.value
+
+
+        absolute_path = "/Users/alialvandi/Desktop/MIR/Logic/core/indexer/index/" + self.index_name.value
         
         if self.index_type != None:
             absolute_path = absolute_path + "_" + self.index_type.value

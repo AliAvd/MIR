@@ -1,5 +1,5 @@
-from .indexes_enum import Indexes, Index_types
-from .index_reader import Index_reader
+from Logic.core.indexer.indexes_enum import  Indexes, Index_types
+from Logic.core.indexer.index_reader import Index_reader
 import json
 
 
@@ -65,11 +65,11 @@ class Tiered_index:
         for key, value in current_index.items():
             for doc_id, freq in value.items():
                 if freq >= first_tier_threshold:
-                    first_tier.setdefault(key, {})[id] = freq
+                    first_tier.setdefault(key, {})[doc_id] = freq
                 elif freq >= second_tier_threshold:
-                    second_tier.setdefault(key, {})[id] = freq
+                    second_tier.setdefault(key, {})[doc_id] = freq
                 else:
-                    third_tier.setdefault(key, {})[id] = freq
+                    third_tier.setdefault(key, {})[doc_id] = freq
 
         return {
             "first_tier": first_tier,

@@ -17,7 +17,7 @@ class Metadata_index:
         self.documents = self.read_documents(path)
         self.metadata_index = self.create_metadata_index()
 
-    def read_documents(self):
+    def read_documents(self, path):
         """
         Reads the documents.
         
@@ -51,8 +51,9 @@ class Metadata_index:
 
         sum = 0
         for movie in self.documents.values():
-            for part in movie[where]:
-                sum += len(part.split())
+            if not movie[where] is None:
+                for part in movie[where]:
+                    sum += len(part.split())
 
         return sum / len(self.documents)
 
@@ -73,3 +74,4 @@ class Metadata_index:
     
 if __name__ == "__main__":
     meta_index = Metadata_index()
+    meta_index.store_metadata_index(meta_index.path)

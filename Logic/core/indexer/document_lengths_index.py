@@ -45,7 +45,8 @@ class DocumentLengthsIndex:
         for document in self.documents_index.values():
             id = document['id']
             if where in document:
-                document_lengths[id] = len(document[where])
+                if not document[where] is None:
+                    document_lengths[id] = len(document[where])
             else:
                 document_lengths[id] = 0
         return document_lengths

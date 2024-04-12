@@ -3,7 +3,6 @@ import os
 import json
 import copy
 from indexes_enum import Indexes
-from ..preprocess import Preprocessor
 
 
 class Index:
@@ -13,7 +12,7 @@ class Index:
         """
 
         self.preprocessed_documents = preprocessed_documents
-
+        self.terms = []
         self.index = {
             Indexes.DOCUMENTS.value: self.index_documents(),
             Indexes.STARS.value: self.index_stars(),
@@ -62,6 +61,7 @@ class Index:
             for star in stars:
                 for part in star.split():
                     part = part.lower()
+                    self.terms.append(part)
                     if part not in star_indexes:
                         star_indexes[part] = {}
                     star_indexes[part][id] = parts.count(part)
@@ -86,8 +86,8 @@ class Index:
             for i in range(len(genres)):
                 genres[i] = genres[i].lower()
             for genre in genres:
-                genre = genre.lower()
                 if genre not in genre_indexes:
+                    self.terms.append(genre)
                     genre_indexes[genre] = {}
                 genre_indexes[genre][id] = genres.count(genre)
         return genre_indexes
@@ -107,18 +107,17 @@ class Index:
         for doc in self.preprocessed_documents:
             id = doc['id']
             summaries = doc.get('summaries', [])
-            for summary in summaries:
-                summary = Preprocessor.remove_links(summary)
-                summary = Preprocessor.remove_punctuations(summary)
-                summary = Preprocessor.tokenize(summary)
-                summary = Preprocessor.remove_stopwords(summary)
-                dummy = {}
-                for word in summary.split():
-                    dummy[word] = dummy.get(word, 0) + 1
-                for word, freq in dummy.items():
-                    if word not in current_index:
-                        current_index[word] = {}
-                    current_index[word][id] = freq
+            if not summaries is None:
+                for summary in summaries:
+                    summary = summary.lower()
+                    dummy = {}
+                    for word in summary.split():
+                        dummy[word] = dummy.get(word, 0) + 1
+                    for word, freq in dummy.items():
+                        if word not in current_index:
+                            self.terms.append(word)
+                            current_index[word] = {}
+                        current_index[word][id] = freq
         return current_index
 
     def get_posting_list(self, word: str, index_type: str):
@@ -181,10 +180,6 @@ class Index:
 
         summaries = document.get('summaries', [])
         for summary in summaries:
-            summary = Preprocessor.remove_links(summary)
-            summary = Preprocessor.remove_punctuations(summary)
-            summary = Preprocessor.tokenize(summary)
-            summary = Preprocessor.remove_stopwords(summary)
             words = summary.split()
             for word in words:
                 if word not in self.index[Indexes.SUMMARIES.value]:
@@ -407,4 +402,31 @@ class Index:
             print('Indexing is wrong')
             return False
 
+
+
 # TODO: Run the class with needed parameters, then run check methods and finally report the results of check methods
+file = open('/Users/alialvandi/Desktop/MIR/Logic/IMDB_crawled.json')
+movies_dataset = json.load(file)
+file.close()
+index = Index(movies_dataset)
+# index.store_index('/Users/alialvandi/Desktop/MIR/Logic/core/indexer/index')
+index.store_index('/Users/alialvandi/Desktop/MIR/Logic/core/indexer/index', index_name=Indexes.DOCUMENTS.value)
+index.store_index('/Users/alialvandi/Desktop/MIR/Logic/core/indexer/index', index_name=Indexes.STARS.value)
+index.store_index('/Users/alialvandi/Desktop/MIR/Logic/core/indexer/index', index_name=Indexes.GENRES.value)
+index.store_index('/Users/alialvandi/Desktop/MIR/Logic/core/indexer/index', index_name=Indexes.SUMMARIES.value)
+index.check_add_remove_is_correct()
+dummy_document = {
+           'id': '100',
+           'stars': ['tim', 'henry'],
+           'genres': ['drama', 'crime'],
+           'summaries': ['good']
+       }
+index.add_document_to_index(dummy_document)
+index.check_if_indexing_is_good(Indexes.SUMMARIES.value, check_word='good')
+# index.check_if_index_loaded_correctly()
+
+# path = './index/' + Indexes.DOCUMENTS.value
+# x = index.load_index(path)
+# print(index.check_if_index_loaded_correctly(Indexes.DOCUMENTS.value, x))
+with open('../terms.json', 'w') as f:
+   json.dump(index.terms, f)

@@ -5,7 +5,6 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer, WordNetLemmatizer
 
 
-
 class Preprocessor:
 
     def __init__(self, documents: list):

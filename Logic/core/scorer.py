@@ -112,7 +112,6 @@ class Scorer:
         dict
             A dictionary of the document IDs and their scores.
         """
-
         scores = {}
         doc_ids = self.get_list_of_documents(query)
         document_method = method.split(".")[0]
@@ -166,7 +165,7 @@ class Scorer:
         if document_method[0] == 'n':
             doc_score = term_freq
         else:
-            doc_score = np.log(term_freq)
+            doc_score = np.log(term_freq) + 1
         if document_method[1] == 't':
             doc_score = np.multiply(doc_score, idf)
         if document_method[2] == 'c':
@@ -185,7 +184,7 @@ class Scorer:
 
         return np.dot(doc_score, query_score)
 
-    def compute_socres_with_okapi_bm25(self, query, average_document_field_length, document_lengths):
+    def compute_scores_with_okapi_bm25(self, query, average_document_field_length, document_lengths):
         """
         compute scores with okapi bm25
 

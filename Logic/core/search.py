@@ -1,9 +1,9 @@
 import json
 import numpy as np
-from .preprocess import Preprocessor
-from .scorer import Scorer
-from indexer.indexes_enum import Indexes, Index_types
-from indexer.index_reader import Index_reader
+from Logic.core.preprocess import Preprocessor
+from Logic.core.scorer import Scorer
+from Logic.core.indexer.indexes_enum import Indexes, Index_types
+from Logic.core.indexer.index_reader import Index_reader
 
 
 class SearchEngine:
@@ -12,7 +12,7 @@ class SearchEngine:
         Initializes the search engine.
 
         """
-        path = '/index'
+        path = '/Users/alialvandi/Desktop/MIR/Logic/core/indexer/index'
         self.document_indexes = {
             Indexes.STARS: Index_reader(path, Indexes.STARS),
             Indexes.GENRES: Index_reader(path, Indexes.GENRES),
@@ -114,7 +114,7 @@ class SearchEngine:
             for tier in ["first_tier", "second_tier", "third_tier"]:
                 scorer = Scorer(self.tiered_index[field].index[tier], self.metadata_index.index.get("document_count"))
                 if (method == 'OkapiBM25'):
-                    scores[field].update(scorer.compute_socres_with_okapi_bm25(query, self.metadata_index.index[
+                    scores[field].update(scorer.compute_scores_with_okapi_bm25(query, self.metadata_index.index[
                         "averge_document_length"][field.value], self.document_lengths_index[field].index))
                 else:
                     scores[field].update(scorer.compute_scores_with_vector_space_model(query, method))
@@ -141,7 +141,7 @@ class SearchEngine:
             scores[field] = {}
             scorer = Scorer(self.document_indexes[field].index, self.metadata_index.index.get("document_count"))
             if (method == 'OkapiBM25'):
-                scores[field] = scorer.compute_socres_with_okapi_bm25(query, self.metadata_index.index[
+                scores[field] = scorer.compute_scores_with_okapi_bm25(query, self.metadata_index.index[
                     "averge_document_length"][field.value], self.document_lengths_index[field].index)
             else:
                 scores[field] = scorer.compute_scores_with_vector_space_model(query, method)
