@@ -14,7 +14,7 @@ file = open('/Users/alialvandi/Desktop/MIR/Logic/core/terms.json')
 terms = json.load(file)
 file.close()
 
-# movies_dataset = None  # TODO: load your movies dataset (from the json file you saved your indexes in), here
+# movies_dataset = None
 # You can refer to `get_movie_by_id` to see how this is used.
 search_engine = SearchEngine()
 
@@ -34,7 +34,6 @@ def correct_text(text: str, all_documents: List[str]) -> str:
     str
         The corrected form of the given text
     """
-    # TODO: You can add any preprocessing steps here, if needed!
     preprocessor = Preprocessor(all_documents)
     all_documents = preprocessor.preprocess()
     spell_correction_obj = SpellCorrection(all_documents)
