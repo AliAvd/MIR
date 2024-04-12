@@ -1,4 +1,4 @@
-
+import wandb
 from typing import List
 
 class Evaluation:
@@ -22,9 +22,22 @@ class Evaluation:
         float
             The precision of the predicted results
         """
-        precision = 0.0
+        total_queries = len(actual)
+        total_precision = 0.0
 
-        
+        for i in range(total_queries):
+            relevant_documents = set(actual[i])
+            retrieved_documents = predicted[i]
+
+            relevant_retrieved_documents = [doc for doc in retrieved_documents if doc in relevant_documents]
+
+            query_precision = len(relevant_retrieved_documents) / len(retrieved_documents) if len(
+                retrieved_documents) > 0 else 0
+
+            total_precision += query_precision
+
+        precision = total_precision / total_queries if total_queries > 0 else 0.0
+
         return precision
     
     def calculate_recall(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
@@ -43,9 +56,21 @@ class Evaluation:
         float
             The recall of the predicted results
         """
-        recall = 0.0
+        total_queries = len(actual)
+        total_recall = 0.0
 
-        # TODO: Calculate recall here
+        for i in range(total_queries):
+            relevant_documents = set(actual[i])
+            retrieved_documents = predicted[i]
+
+            relevant_retrieved_documents = [doc for doc in retrieved_documents if doc in relevant_documents]
+
+            query_recall = len(relevant_retrieved_documents) / len(relevant_documents) if len(
+                relevant_documents) > 0 else 0
+
+            total_recall += query_recall
+
+        recall = total_recall / total_queries if total_queries > 0 else 0.0
 
         return recall
     
@@ -67,7 +92,10 @@ class Evaluation:
         """
         f1 = 0.0
 
-        # TODO: Calculate F1 here
+        precision = self.calculate_precision(actual, predicted)
+        recall = self.calculate_recall(actual, predicted)
+
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
 
         return f1
     
@@ -87,11 +115,29 @@ class Evaluation:
         float
             The Average Precision of the predicted results
         """
-        AP = 0.0
 
-        # TODO: Calculate AP here
+        total_queries = len(actual)
+        total_AP = 0.0
 
-        return AP
+        for i in range(total_queries):
+            relevant_documents = set(actual[i])
+            retrieved_documents = predicted[i]
+
+            precision_at_k = 0.0
+            num_relevant_docs = 0
+
+            for j, doc in enumerate(retrieved_documents, start=1):
+                if doc in relevant_documents:
+                    num_relevant_docs += 1
+                    precision_at_k += num_relevant_docs / j
+
+            if num_relevant_docs > 0:
+                average_precision = precision_at_k / len(relevant_documents)
+                total_AP += average_precision
+
+        MAP = total_AP / total_queries if total_queries > 0 else 0.0
+
+        return MAP
     
     def calculate_MAP(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
@@ -111,11 +157,32 @@ class Evaluation:
         """
         MAP = 0.0
 
-        # TODO: Calculate MAP here
+        average_precisions = [self.calculate_AP([actual[i]], [predicted[i]]) for i in range(len(actual))]
+
+        MAP = sum(average_precisions) / len(average_precisions) if len(average_precisions) > 0 else 0.0
 
         return MAP
+
+    def calculate_DCG(self, relevance_scores: List[int]) -> float:
+        """
+        Calculates the Discounted Cumulative Gain (DCG) of a list of relevance scores
+
+        Parameters
+        ----------
+        relevance_scores : List[int]
+            The relevance scores of the retrieved documents
+
+        Returns
+        -------
+        float
+            The DCG of the list of relevance scores
+        """
+        dcg = relevance_scores[0] if relevance_scores else 0.0
+        for i in range(1, len(relevance_scores)):
+            dcg += relevance_scores[i] / (i + 1)  # Discounting relevance based on rank
+        return dcg
     
-    def cacluate_DCG(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
+    def calculate_DCG(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Normalized Discounted Cumulative Gain (NDCG) of the predicted results
 
@@ -133,11 +200,42 @@ class Evaluation:
         """
         DCG = 0.0
 
-        # TODO: Calculate DCG here
+        total_queries = len(actual)
+        total_DCG = 0.0
+
+        for i in range(total_queries):
+            relevant_documents = set(actual[i])
+            retrieved_documents = predicted[i]
+
+            relevance_scores = [1 if doc in relevant_documents else 0 for doc in retrieved_documents]
+
+            dcg = self.calculate_DCG(relevance_scores)
+
+            total_DCG += dcg
+
+        DCG = total_DCG / total_queries if total_queries > 0 else 0.0
 
         return DCG
+
+
+    def calculate_IDCG(self, num_relevant_docs: int) -> float:
+        """
+        Calculates the Ideal Discounted Cumulative Gain (IDCG) for a given number of relevant documents
+
+        Parameters
+        ----------
+        num_relevant_docs : int
+            The number of relevant documents
+
+        Returns
+        -------
+        float
+            The IDCG for the given number of relevant documents
+        """
+        idcg = sum(1 / (i + 1) for i in range(num_relevant_docs))
+        return idcg
     
-    def cacluate_NDCG(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
+    def calculate_NDCG(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Normalized Discounted Cumulative Gain (NDCG) of the predicted results
 
@@ -155,11 +253,29 @@ class Evaluation:
         """
         NDCG = 0.0
 
-        # TODO: Calculate NDCG here
+        total_queries = len(actual)
+        total_NDCG = 0.0
+
+        for i in range(total_queries):
+            relevant_documents = set(actual[i])
+            retrieved_documents = predicted[i]
+
+            relevance_scores = [1 if doc in relevant_documents else 0 for doc in retrieved_documents]
+
+            dcg = self.calculate_DCG(relevance_scores)
+
+            idcg = self.calculate_IDCG(len(relevant_documents))
+
+            ndcg = dcg / idcg if idcg > 0 else 0.0
+
+            total_NDCG += ndcg
+
+        NDCG = total_NDCG / total_queries if total_queries > 0 else 0.0
 
         return NDCG
+
     
-    def cacluate_RR(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
+    def calculate_RR(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Mean Reciprocal Rank of the predicted results
 
@@ -177,11 +293,12 @@ class Evaluation:
         """
         RR = 0.0
 
-        # TODO: Calculate MRR here
-
+        for i, doc in enumerate(predicted, start=1):
+            if doc in actual:
+                return 1 / i
         return RR
     
-    def cacluate_MRR(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
+    def calculate_MRR(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Mean Reciprocal Rank of the predicted results
 
@@ -199,7 +316,14 @@ class Evaluation:
         """
         MRR = 0.0
 
-        # TODO: Calculate MRR here
+        total_queries = len(actual)
+        total_rr = 0.0
+
+        for i in range(total_queries):
+            rr = self.calculate_RR(actual[i], predicted[i])
+            total_rr += rr
+
+        MRR = total_rr / total_queries if total_queries > 0 else 0.0
 
         return MRR
     
@@ -232,7 +356,16 @@ class Evaluation:
         """
         print(f"name = {self.name}")
 
-        #TODO: Print the evaluation metrics
+        print(f"name = {self.name}")
+        print(f"Precision: {precision}")
+        print(f"Recall: {recall}")
+        print(f"F1 Score: {f1}")
+        print(f"Average Precision: {ap}")
+        print(f"Mean Average Precision: {map}")
+        print(f"Discounted Cumulative Gain: {dcg}")
+        print(f"Normalized Discounted Cumulative Gain: {ndcg}")
+        print(f"Reciprocal Rank: {rr}")
+        print(f"Mean Reciprocal Rank: {mrr}")
       
 
     def log_evaluation(self, precision, recall, f1, ap, map, dcg, ndcg, rr, mrr):
@@ -261,8 +394,19 @@ class Evaluation:
             The Mean Reciprocal Rank of the predicted results
             
         """
-        
-        #TODO: Log the evaluation metrics using Wandb
+
+        wandb.init('MIR_Project')
+        wandb.log({
+            "Precision": precision,
+            "Recall": recall,
+            "F1 Score": f1,
+            "Average Precision": ap,
+            "Mean Average Precision": map,
+            "Discounted Cumulative Gain": dcg,
+            "Normalized Discounted Cumulative Gain": ndcg,
+            "Reciprocal Rank": rr,
+            "Mean Reciprocal Rank": mrr
+        })
 
 
     def calculate_evaluation(self, actual: List[List[str]], predicted: List[List[str]]):
@@ -283,12 +427,12 @@ class Evaluation:
         f1 = self.calculate_F1(actual, predicted)
         ap = self.calculate_AP(actual, predicted)
         map_score = self.calculate_MAP(actual, predicted)
-        dcg = self.cacluate_DCG(actual, predicted)
-        ndcg = self.cacluate_NDCG(actual, predicted)
-        rr = self.cacluate_RR(actual, predicted)
-        mrr = self.cacluate_MRR(actual, predicted)
+        dcg = self.calculate_DCG(actual, predicted)
+        ndcg = self.calculate_NDCG(actual, predicted)
+        rr = self.calculate_RR(actual, predicted)
+        mrr = self.calculate_MRR(actual, predicted)
 
-        #call print and viualize functions
+        # call print and visualize functions
         self.print_evaluation(precision, recall, f1, ap, map_score, dcg, ndcg, rr, mrr)
         self.log_evaluation(precision, recall, f1, ap, map_score, dcg, ndcg, rr, mrr)
 

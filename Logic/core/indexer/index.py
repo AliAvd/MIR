@@ -422,7 +422,7 @@ dummy_document = {
            'summaries': ['good']
        }
 index.add_document_to_index(dummy_document)
-index.check_if_indexing_is_good(Indexes.SUMMARIES.value, check_word='good')
+index.check_if_indexing_is_good(Indexes.STARS.value, check_word='tim')
 # index.check_if_index_loaded_correctly()
 
 # path = './index/' + Indexes.DOCUMENTS.value

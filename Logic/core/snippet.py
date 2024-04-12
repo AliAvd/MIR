@@ -1,3 +1,4 @@
+from nltk.corpus import stopwords
 class Snippet:
     def __init__(self, number_of_words_on_each_side=5):
         """
@@ -8,6 +9,7 @@ class Snippet:
         number_of_words_on_each_side : int
             The number of words on each side of the query word in the doc to be presented in the snippet.
         """
+        self.stop_words = set(stopwords.words('english'))
         self.number_of_words_on_each_side = number_of_words_on_each_side
 
     def remove_stop_words_from_query(self, query):
@@ -25,9 +27,13 @@ class Snippet:
             The query without stop words.
         """
 
-        # TODO: remove stop words from the query.
+        words = query.split()
+        terms = []
+        for word in words:
+            if word.lower() not in self.stop_words:
+                terms.append(word)
 
-        return
+        return " ".join(terms)
 
     def find_snippet(self, doc, query):
         """
@@ -51,6 +57,29 @@ class Snippet:
         final_snippet = ""
         not_exist_words = []
 
-        # TODO: Extract snippet and the tokens which are not present in the doc.
+        query = self.remove_stop_words_from_query(query)
 
-        return final_snippet, not_exist_words
+        doc_tokens = doc.split()
+        query_tokens = query.split()
+
+        matches = []
+        for token in query_tokens:
+            if token in doc_tokens:
+                matches.append(token)
+            else:
+                not_exist_words.append(token)
+
+        snippet_words = []
+        for match in matches:
+            match_index = doc_tokens.index(match)
+            start_index = max(0, match_index - self.number_of_words_on_each_side)
+            end_index = min(len(doc_tokens), match_index + self.number_of_words_on_each_side + 1)
+            snippet_words.extend(doc_tokens[start_index:end_index])
+
+        for word in snippet_words:
+            if word.lower() in matches:
+                final_snippet += f" ***{word}***"
+            else:
+                final_snippet += f" {word}"
+
+        return final_snippet.strip(), not_exist_words
