@@ -3,6 +3,7 @@ import os
 import json
 import copy
 from indexes_enum import Indexes
+from Logic.core.preprocess import Preprocessor
 
 
 class Index:
@@ -54,6 +55,8 @@ class Index:
             id = doc['id']
             stars = doc['stars']
             parts = []
+            if stars is None:
+                return star_indexes
             for star in stars:
                 for part in star.split():
                     part = part.lower()

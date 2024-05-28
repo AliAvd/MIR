@@ -48,6 +48,9 @@ def search(
     weights: list = [0.3, 0.3, 0.4],
     should_print=False,
     preferred_genre: str = None,
+    smoothing_method=None,
+    alpha=0.5,
+    lamda=0.5,
 ):
     """
     Finds relevant documents to query
@@ -82,9 +85,12 @@ def search(
         Indexes.GENRES: 1,
         Indexes.SUMMARIES: 1
     }
-    return search_engine.search(
-        query, method, weights, max_results=max_result_count, safe_ranking=True
-    )
+    # return search_engine.search(
+    #     query, method, weights, max_results=max_result_count, safe_ranking=True
+    # )
+    return search_engine.search(query, method, weights, safe_ranking=True, max_results=10, smoothing_method=smoothing_method,
+            alpha=alpha,
+            lamda=lamda)
 
 
 def get_movie_by_id(id: str, movies_dataset: List[Dict[str, str]]) -> Dict[str, str]:

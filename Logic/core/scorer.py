@@ -1,6 +1,6 @@
 import numpy as np
 
-class Scorer:    
+class Scorer:
     def __init__(self, index, number_of_documents):
         """
         Initializes the Scorer.
@@ -30,21 +30,21 @@ class Scorer:
         -------
         list
             A list of documents that contain at least one of the terms in the query.
-        
+
         Note
         ---------
             The current approach is not optimal but we use it due to the indexing structure of the dict we're using.
             If we had pairs of (document_id, tf) sorted by document_id, we could improve this.
                 We could initialize a list of pointers, each pointing to the first element of each list.
                 Then, we could iterate through the lists in parallel.
-            
+
         """
         list_of_documents = []
         for term in query:
             if term in self.index.keys():
                 list_of_documents.extend(self.index[term].keys())
         return list(set(list_of_documents))
-    
+
     def get_idf(self, term):
         """
         Returns the inverse document frequency of a term.
@@ -58,7 +58,7 @@ class Scorer:
         -------
         float
             The inverse document frequency of the term.
-        
+
         Note
         -------
             It was better to store dfs in a separate dict in preprocessing.
@@ -72,7 +72,7 @@ class Scorer:
                 idf = np.log(self.N / fq)
             self.idf[term] = idf
         return idf
-    
+
     def get_query_tfs(self, query):
         """
         Returns the term frequencies of the terms in the query.
@@ -197,7 +197,7 @@ class Scorer:
         document_lengths : dict
             A dictionary of the document lengths. The keys are the document IDs, and the values are
             the document's length in that field.
-        
+
         Returns
         -------
         dict
@@ -241,4 +241,125 @@ class Scorer:
                 denumerator = freq + k * (1 - b + b * document_lengths[document_id] / average_document_field_length)
                 numerator = self.get_idf(term) * freq * (k + 1)
                 score += numerator / denumerator
+        return score
+
+    def compute_score_with_unigram_model(self, query, smoothing_method, document_lengths=None, alpha=0.5, lamda=0.5):
+        """
+        Calculates the scores for each document based on the unigram model.
+
+        Parameters
+        ----------
+        query : str
+            The query to search for.
+        smoothing_method : str (bayes | naive | mixture)
+            The method used for smoothing the probabilities in the unigram model.
+        document_lengths : dict
+            A dictionary of the document lengths. The keys are the document IDs, and the values are
+            the document's length in that field.
+        alpha : float, optional
+            The parameter used in bayesian smoothing method. Defaults to 0.5.
+        lamda : float, optional
+            The parameter used in some smoothing methods to balance between the document
+            probability and the collection probability. Defaults to 0.5.
+
+        Returns
+        -------
+        float
+            A dictionary of the document IDs and their scores.
+        """
+        scores = {}
+        for doc_id in self.get_list_of_documents(query):
+            score = self.compute_scores_with_unigram_model(
+                query, doc_id, smoothing_method, document_lengths, alpha, lamda
+            )
+            scores[doc_id] = score
+        return scores
+
+    def compute_scores_with_unigram_model(
+            self, query, document_id, smoothing_method, document_lengths, alpha, lamda
+    ):
+        """
+        Calculates the scores for each document based on the unigram model.
+
+        Parameters
+        ----------
+        query : str
+            The query to search for.
+        document_id : str
+            The document to calculate the score for.
+        smoothing_method : str (bayes | naive | mixture)
+            The method used for smoothing the probabilities in the unigram model.
+        document_lengths : dict
+            A dictionary of the document lengths. The keys are the document IDs, and the values are
+            the document's length in that field.
+        alpha : float, optional
+            The parameter used in bayesian smoothing method. Defaults to 0.5.
+        lamda : float, optional
+            The parameter used in some smoothing methods to balance between the document
+            probability and the collection probability. Defaults to 0.5.
+
+        Returns
+        -------
+        float
+            The Unigram score of the document for the query.
+        """
+        query_tfs = self.get_query_tfs(query)
+
+        score = 0
+        if smoothing_method == 'bayes':
+            score = self.compute_bayes_score(query, query_tfs, document_id, document_lengths, alpha)
+
+        elif smoothing_method == 'naive':
+            score = self.compute_naive_score(query, query_tfs, document_id, document_lengths)
+
+        elif smoothing_method == 'mixture':
+            score = self.compute_mixture_score(query, query_tfs, document_id, document_lengths, alpha, lamda)
+        return score
+
+    def compute_bayes_score(self, query, query_tfs, document_id, document_lengths, alpha):
+        score = 0.0
+        T = sum(document_lengths.values())
+        for term in query:
+            cf = 0
+            if term in self.index and document_id in self.index[term]:
+                tf = self.index[term][document_id]
+            else:
+                tf = 0
+            if term in self.index:
+                for _, TermFreq in self.index[term].items():
+                    cf += TermFreq
+
+            doc_length = document_lengths[document_id]
+            score += query_tfs[term] * np.log((tf + alpha * cf / T) / (doc_length + alpha))
+
+        return score
+
+    def compute_naive_score(self, query, query_tfs, document_id, document_lengths):
+        score = 0.0
+        T = len(self.index)
+        for term in query:
+            if term in self.index and document_id in self.index[term]:
+                tf = self.index[term][document_id]
+            else:
+                tf = 0
+            doc_length = document_lengths[document_id]
+            score += query_tfs[term] * np.log((tf + 1/T) / (doc_length + 1))
+        return score
+
+    def compute_mixture_score(self, query, query_tfs, document_id, document_lengths, alpha,lamda):
+        score = 0.0
+        T = sum(document_lengths.values())
+        doc_length = document_lengths[document_id]
+        for term in query:
+            cf = 0
+            if term in self.index and document_id in self.index[term]:
+                tf = self.index[term][document_id]
+            else:
+                tf = 0
+            if term in self.index:
+                for _, termf in self.index[term].items():
+                    cf += termf
+
+            score += query_tfs[term] * np.log(lamda * tf / doc_length + (1 - lamda)*(cf / T))
+
         return score

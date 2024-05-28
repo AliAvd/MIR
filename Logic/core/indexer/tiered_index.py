@@ -47,7 +47,7 @@ class Tiered_index:
         Returns
         -------
         dict
-            The tiered index with structure of 
+            The tiered index with structure of
             {
                 "first_tier": dict,
                 "second_tier": dict,

@@ -1,10 +1,11 @@
 import wandb
 from typing import List
 
+
 class Evaluation:
 
     def __init__(self, name: str):
-            self.name = name
+        self.name = name
 
     def calculate_precision(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
@@ -39,7 +40,7 @@ class Evaluation:
         precision = total_precision / total_queries if total_queries > 0 else 0.0
 
         return precision
-    
+
     def calculate_recall(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the recall of the predicted results
@@ -73,7 +74,7 @@ class Evaluation:
         recall = total_recall / total_queries if total_queries > 0 else 0.0
 
         return recall
-    
+
     def calculate_F1(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the F1 score of the predicted results
@@ -88,7 +89,7 @@ class Evaluation:
         Returns
         -------
         float
-            The F1 score of the predicted results    
+            The F1 score of the predicted results
         """
         f1 = 0.0
 
@@ -98,7 +99,7 @@ class Evaluation:
         f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
 
         return f1
-    
+
     def calculate_AP(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Mean Average Precision of the predicted results
@@ -138,7 +139,7 @@ class Evaluation:
         MAP = total_AP / total_queries if total_queries > 0 else 0.0
 
         return MAP
-    
+
     def calculate_MAP(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Mean Average Precision of the predicted results
@@ -181,7 +182,7 @@ class Evaluation:
         for i in range(1, len(relevance_scores)):
             dcg += relevance_scores[i] / (i + 1)  # Discounting relevance based on rank
         return dcg
-    
+
     def calculate_DCG(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Normalized Discounted Cumulative Gain (NDCG) of the predicted results
@@ -217,7 +218,6 @@ class Evaluation:
 
         return DCG
 
-
     def calculate_IDCG(self, num_relevant_docs: int) -> float:
         """
         Calculates the Ideal Discounted Cumulative Gain (IDCG) for a given number of relevant documents
@@ -234,7 +234,7 @@ class Evaluation:
         """
         idcg = sum(1 / (i + 1) for i in range(num_relevant_docs))
         return idcg
-    
+
     def calculate_NDCG(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Normalized Discounted Cumulative Gain (NDCG) of the predicted results
@@ -274,7 +274,6 @@ class Evaluation:
 
         return NDCG
 
-    
     def calculate_RR(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Mean Reciprocal Rank of the predicted results
@@ -297,7 +296,7 @@ class Evaluation:
             if doc in actual:
                 return 1 / i
         return RR
-    
+
     def calculate_MRR(self, actual: List[List[str]], predicted: List[List[str]]) -> float:
         """
         Calculates the Mean Reciprocal Rank of the predicted results
@@ -326,7 +325,6 @@ class Evaluation:
         MRR = total_rr / total_queries if total_queries > 0 else 0.0
 
         return MRR
-    
 
     def print_evaluation(self, precision, recall, f1, ap, map, dcg, ndcg, rr, mrr):
         """
@@ -352,7 +350,7 @@ class Evaluation:
             The Reciprocal Rank of the predicted results
         mrr : float
             The Mean Reciprocal Rank of the predicted results
-            
+
         """
         print(f"name = {self.name}")
 
@@ -366,12 +364,11 @@ class Evaluation:
         print(f"Normalized Discounted Cumulative Gain: {ndcg}")
         print(f"Reciprocal Rank: {rr}")
         print(f"Mean Reciprocal Rank: {mrr}")
-      
 
     def log_evaluation(self, precision, recall, f1, ap, map, dcg, ndcg, rr, mrr):
         """
         Use Wandb to log the evaluation metrics
-      
+
         parameters
         ----------
         precision : float
@@ -392,7 +389,7 @@ class Evaluation:
             The Reciprocal Rank of the predicted results
         mrr : float
             The Mean Reciprocal Rank of the predicted results
-            
+
         """
 
         wandb.init('MIR_Project')
@@ -408,7 +405,6 @@ class Evaluation:
             "Mean Reciprocal Rank": mrr
         })
 
-
     def calculate_evaluation(self, actual: List[List[str]], predicted: List[List[str]]):
         """
         call all functions to calculate evaluation metrics
@@ -419,7 +415,7 @@ class Evaluation:
             The actual results
         predicted : List[List[str]]
             The predicted results
-            
+
         """
 
         precision = self.calculate_precision(actual, predicted)

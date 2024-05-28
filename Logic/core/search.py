@@ -30,7 +30,9 @@ class SearchEngine:
         }
         self.metadata_index = Index_reader(path, Indexes.DOCUMENTS, Index_types.METADATA)
 
-    def search(self, query, method, weights, safe_ranking = True, max_results=10):
+    def search(self, query, method, weights, safe_ranking=True, max_results=10, smoothing_method=None,
+            alpha=0.5,
+            lamda=0.5):
         """
         searches for the query in the indexes.
 
@@ -43,7 +45,7 @@ class SearchEngine:
         weights: dict
             The weights of the fields.
         safe_ranking : bool
-            If True, the search engine will search in whole index and then rank the results. 
+            If True, the search engine will search in whole index and then rank the results.
             If False, the search engine will search in tiered index.
         max_results : int
             The maximum number of results to return. If None, all results are returned.
@@ -58,7 +60,11 @@ class SearchEngine:
         query = preprocessor.preprocess()[0].split()
 
         scores = {}
-        if safe_ranking:
+        if method == "unigram":
+            self.find_scores_with_unigram_model(
+                query, smoothing_method, weights, scores, alpha, lamda
+            )
+        elif safe_ranking:
             self.find_scores_with_safe_ranking(query, method, weights, scores)
         else:
             self.find_scores_with_unsafe_ranking(query, method, weights, max_results, scores)
@@ -66,7 +72,7 @@ class SearchEngine:
         final_scores = {}
 
         self.aggregate_scores(weights, scores, final_scores)
-        
+
         result = sorted(final_scores.items(), key=lambda x: x[1], reverse=True)
         if max_results is not None:
             result = result[:max_results]
@@ -90,7 +96,6 @@ class SearchEngine:
             if field in list(scores.keys()):
                 for id, score in scores[field].items():
                     final_scores[id] = final_scores.get(id, 0) + weight * score
-
 
     def find_scores_with_unsafe_ranking(self, query, method, weights, max_results, scores):
         """
@@ -146,6 +151,33 @@ class SearchEngine:
             else:
                 scores[field] = scorer.compute_scores_with_vector_space_model(query, method)
 
+    def find_scores_with_unigram_model(
+            self, query, smoothing_method, weights, scores, alpha=0.5, lamda=0.5
+    ):
+        """
+        Calculates the scores for each document based on the unigram model.
+
+        Parameters
+        ----------
+        query : str
+            The query to search for.
+        smoothing_method : str (bayes | naive | mixture)
+            The method used for smoothing the probabilities in the unigram model.
+        weights : dict
+            A dictionary mapping each field (e.g., 'stars', 'genres', 'summaries') to its weight in the final score. Fields with a weight of 0 are ignored.
+        scores : dict
+            The scores of the documents.
+        alpha : float, optional
+            The parameter used in bayesian smoothing method. Defaults to 0.5.
+        lamda : float, optional
+            The parameter used in some smoothing methods to balance between the document
+            probability and the collection probability. Defaults to 0.5.
+        """
+        for field in weights:
+            scores[field] = {}
+            scorer = Scorer(self.document_indexes[field].index, self.metadata_index.index.get("document_count"))
+            scores[field] = scorer.compute_score_with_unigram_model(query, smoothing_method, self.document_lengths_index[field].index, alpha, lamda)
+
     def merge_scores(self, scores1, scores2):
         """
         Merges two dictionaries of scores.
@@ -166,15 +198,28 @@ class SearchEngine:
         # Nothing To Do ...
 
 
+# if __name__ == '__main__':
+#     search_engine = SearchEngine()
+#     query = "spider man in wonderland"
+#     method = "lnc.ltc"
+#     weights = {
+#         Indexes.STARS: 1,
+#         Indexes.GENRES: 1,
+#         Indexes.SUMMARIES: 1
+#     }
+#     result = search_engine.search(query, method, weights)
+#
+#     print(result)
 if __name__ == '__main__':
     search_engine = SearchEngine()
     query = "spider man in wonderland"
-    method = "lnc.ltc"
+    method = "unigram"
     weights = {
         Indexes.STARS: 1,
         Indexes.GENRES: 1,
         Indexes.SUMMARIES: 1
     }
-    result = search_engine.search(query, method, weights)
+
+    result = search_engine.search(query, method, weights, smoothing_method='bayes')
 
     print(result)
